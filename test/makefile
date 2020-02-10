@@ -9,7 +9,21 @@ ThreadSafeMapTest: $(TEST)/common/ThreadSafeMapTest.cc $(INCLUDE)/common/ThreadS
 LockManagerTest: $(TEST)/lock/LockManagerTest.cc $(INCLUDE)/common/ThreadSafeMap.h $(WORKDIR)/LockManager.o
 	g++ -o LockManagerTest $(TEST)/lock/LockManagerTest.cc $(WORKDIR)/LockManager.o $(CFLAGS)
 
+ThreadSafeQueueTest: $(TEST)/common/ThreadSafeQueueTest.cc $(INCLUDE)/common/ThreadSafeQueue.h
+	g++ -o ThreadSafeQueueTest $(TEST)/common/ThreadSafeQueueTest.cc $(CFLAGS)
+
+ThreadPoolTest: $(TEST)/common/ThreadPoolTest.cc $(INCLUDE)/common/ThreadPool.h
+	g++ -o ThreadPoolTest $(TEST)/common/ThreadPoolTest.cc $(CFLAGS)
+
+LruReplacerTest: $(TEST)/buffer/LruReplacerTest.cc $(INCLUDE)/buffer/LruReplacer.h
+	g++ -o LruReplacerTest $(TEST)/buffer/LruReplacerTest.cc $(CFLAGS)
+
+BufferPoolTest: $(TEST)/buffer/BufferPoolTest.cc $(INCLUDE)/buffer/BufferPool.h $(WORKDIR)/buffer/BufferPool.cc
+	g++ -o BufferPoolTest $(WORKDIR)/buffer/BufferPool.cc $(WORKDIR)/disk/DiskManager.cc $(TEST)/buffer/BufferPoolTest.cc $(CFLAGS)
+
+DiskManagerTest: $(TEST)/disk/DiskManagerTest.cc $(INCLUDE)/disk/DiskManager.h $(WORKDIR)/disk/DiskManager.cc
+	g++ -o DiskManagerTest $(WORKDIR)/disk/DiskManager.cc $(TEST)/disk/DiskManagerTest.cc $(CFLAGS)
 
 clean:
-	rm ThreadSafeMapTest LockManagerTest
+	rm ThreadSafeMapTest LockManagerTest ThreadSafeQueueTest ThreadPoolTest LruReplacerTest BufferPoolTest DiskManagerTest
 
