@@ -24,6 +24,9 @@ BufferPoolTest: $(TEST)/buffer/BufferPoolTest.cc $(INCLUDE)/buffer/BufferPool.h 
 DiskManagerTest: $(TEST)/disk/DiskManagerTest.cc $(INCLUDE)/disk/DiskManager.h $(WORKDIR)/disk/DiskManager.cc
 	g++ -o DiskManagerTest $(WORKDIR)/disk/DiskManager.cc $(TEST)/disk/DiskManagerTest.cc $(CFLAGS)
 
+BPlusTreeTest: $(TEST)/common/BPlusTreeTest.cc $(WORKDIR)/common/BPlusTree.cc 
+	g++ -o BPlusTreeTest $(WORKDIR)/disk/DiskManager.cc $(TEST)/common/BPlusTreeTest.cc $(WORKDIR)/common/BPlusTree.cc $(WORKDIR)/buffer/BufferPool.cc $(CFLAGS)
+
 clean:
 	rm ThreadSafeMapTest LockManagerTest ThreadSafeQueueTest ThreadPoolTest LruReplacerTest BufferPoolTest DiskManagerTest
 

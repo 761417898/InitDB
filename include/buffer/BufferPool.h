@@ -4,6 +4,7 @@
 #include <mutex>
 #include <cstring>
 #include <cstdlib>
+#include <iostream>
 #include <list>
 
 
@@ -16,7 +17,6 @@
 class BufferPool {
     LruReplacer<Page*> lruReplacer_;
     Page* pages_;
-    ThreadSafeMap<PageId, Page*> threadSafeMap_;
     std::list<Page*> freeList_;
     std::mutex mtx_;
     DiskManager diskManager_;
@@ -34,6 +34,16 @@ public:
     Page* NewPage();
 
     void UnpinPage(Page* page);
+
+    void PrintStatus() {
+        for (auto iter = lruReplacer_.list_.begin(); iter != lruReplacer_.list_.end();
+             ++iter) {
+            if (((Page*)(*iter))->refCount_ > 0) {
+                auto ret = *iter;
+                std::cout << ret << "  refCount: " << ret->refCount_ << std::endl;
+            }
+        }
+    }
 
 private:
     void Flush(Page* page);

@@ -3,14 +3,17 @@
 //不成功返回nullptr
 Page* BufferPool::ReadBuffer(PageId pageId) {
     std::lock_guard<std::mutex> lockGuard(mtx_);
-    Page* ret;
-    //hash succeed
-    if (threadSafeMap_.Find(pageId, ret)) {
-        //need update
-        if (ret->pageId_ != pageId) {
-            threadSafeMap_.Erase(pageId);
-        } else {
+
+    Page* ret = nullptr;
+    //本来就在缓冲区中
+    for (auto iter = lruReplacer_.list_.begin(); iter != lruReplacer_.list_.end();
+         ++iter) {
+        if (((Page*)(*iter))->GetPageId() == pageId) {
+            ret = *iter;
             ret->refCount_++;
+            //更新lru链表
+            lruReplacer_.Erase(ret);
+            lruReplacer_.Insert(ret);
             return ret;
         }
     }
@@ -19,15 +22,23 @@ Page* BufferPool::ReadBuffer(PageId pageId) {
         ret = freeList_.back();
         freeList_.pop_back();
     } else {
-        lruReplacer_.Victim(ret);
-        if (ret->refCount_ > 0) {
+        //替换
+        for (auto iter = lruReplacer_.list_.begin(); iter != lruReplacer_.list_.end();
+             ++iter) {
+            if (((Page*)(*iter))->refCount_ == 0) {
+                ret = *iter;
+                lruReplacer_.Erase(ret);
+                break;
+            }
+        }
+
+        if (ret == nullptr) {
             return nullptr;
         }
-        lruReplacer_.Erase(ret);
     }
     ret->refCount_ = 1;
-    ret->pageId_ =pageId;
-    threadSafeMap_.Insert(ret->pageId_, ret);
+    ret->pageId_ = pageId;
+    ret->dirty_ = false;
     lruReplacer_.Insert(ret);
 
     diskManager_.ReadPage(pageId, ret->GetData());
@@ -38,23 +49,30 @@ Page* BufferPool::ReadBuffer(PageId pageId) {
 //不成功返回nullptr
 Page* BufferPool::NewPage() {
     std::lock_guard<std::mutex> lockGuard(mtx_);
-    Page* ret;
+    Page* ret = nullptr;
     if (!freeList_.empty()) {
         ret = freeList_.back();
         freeList_.pop_back();
     } else {
-        lruReplacer_.Victim(ret);
-        if (ret->refCount_ > 0) {
+        for (auto iter = lruReplacer_.list_.begin(); iter != lruReplacer_.list_.end();
+             ++iter) {
+            if (((Page*)(*iter))->refCount_ == 0) {
+                ret = *iter;
+                lruReplacer_.Erase(ret);
+                break;
+            }
+        }
+
+        if (ret == nullptr) {
             return nullptr;
         }
-        lruReplacer_.Erase(ret);
     }
     ret->refCount_ = 1;
+    ret->dirty_ = false;
     memset(ret->GetData(), 0, PAGESIZE);
     ret->pageId_ = diskManager_.AllocatePageId();
-    threadSafeMap_.Insert(ret->pageId_, ret);
-    lruReplacer_.Insert(ret);
 
+    lruReplacer_.Insert(ret);
     return ret;
 }
 
@@ -64,11 +82,6 @@ void BufferPool::UnpinPage(Page* page) {
     if (page->refCount_ == 0 && page->dirty_) {
         Flush(page);
     }
-    //未被引用的被优先置换出
-    lruReplacer_.Erase(page);
-    lruReplacer_.PushBack(page);
-
-    threadSafeMap_.Erase(page->GetPageId());
 }
 
 void BufferPool::Flush(Page* page) {
